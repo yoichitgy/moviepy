@@ -1082,6 +1082,7 @@ class TextClip(ImageClip):
     def __init__(self, txt=None, filename=None, size=None, color='black',
                  bg_color='transparent', fontsize=None, font='Courier',
                  stroke_color=None, stroke_width=1, method='label',
+                 shadow_color=None, shadow_opacity=0.8, shadow_blur=3, shadow_offset=(0, 0),
                  kerning=None, align='center', interline=None,
                  tempfilename=None, temptxt=None,
                  transparent=True, remove_temp=True,
@@ -1122,13 +1123,31 @@ class TextClip(ImageClip):
             cmd += ["-gravity", align]
         if interline is not None:
             cmd += ["-interline-spacing", "%d" % interline]
+        cmd += ["%s:%s" % (method, txt)]
+
+        if shadow_color is not None:
+            opacity = int(100 * shadow_opacity)
+            cmd += [
+                "(",
+                "+clone",
+                "-background",
+                shadow_color,
+                "-shadow",
+                "%dx%d+%d+%d"
+                % (opacity, shadow_blur, shadow_offset[0], shadow_offset[1]),
+                ")",
+                "+swap",
+                "-background",
+                "none",
+                "-layers",
+                "merge",
+            ]
 
         if tempfilename is None:
             tempfile_fd, tempfilename = tempfile.mkstemp(suffix='.png')
             os.close(tempfile_fd)
 
-        cmd += ["%s:%s" % (method, txt),
-                "-type", "truecolormatte", "PNG32:%s" % tempfilename]
+        cmd += ["-type", "truecolormatte", "PNG32:%s" % tempfilename]
 
         if print_cmd:
             print(" ".join(cmd))
@@ -1149,6 +1168,7 @@ class TextClip(ImageClip):
         self.txt = txt
         self.color = color
         self.stroke_color = stroke_color
+        self.shadow_color = shadow_color
 
         if remove_temp:
             if os.path.exists(tempfilename):
